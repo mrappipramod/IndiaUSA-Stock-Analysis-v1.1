@@ -8,10 +8,17 @@ Storage:       each analysis is committed as JSON to your GitHub repo.
 import pandas as pd
 import streamlit as st
 
-from validations import run_validations, PASS, WARN, FAIL, NA
+from validations import run_validations, RateLimited, PASS, WARN, FAIL, NA
 import github_store
 
 st.set_page_config(page_title="Pre-Buy Stock Validator", page_icon="✅", layout="wide")
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def cached_validation(symbol: str):
+    """Cache results for 1h so repeat lookups (any user, same server) don't re-hit Yahoo."""
+    return run_validations(symbol)
+
 
 ICON = {PASS: "✅", WARN: "⚠️", FAIL: "❌", NA: "➖"}
 
@@ -45,13 +52,17 @@ with st.sidebar:
 # ---------------- run ----------------
 if go and ticker:
     try:
-        with st.spinner(f"Pulling Yahoo Finance data for {ticker.upper()} …"):
-            report = run_validations(ticker)
+        with st.spinner(f"Pulling Yahoo Finance data for {ticker.upper()} … (retries automatically if rate-limited)"):
+            report = cached_validation(ticker.upper())
         st.session_state["report"] = report
     except ValueError as e:
         st.error(str(e))
+    except RateLimited:
+        st.error("Yahoo is rate-limiting this server right now, even after 4 retries. "
+                 "Wait 2–5 minutes and try again — results are cached for an hour once a "
+                 "ticker succeeds, so it won't need to re-fetch.")
     except Exception as e:
-        st.error(f"Data fetch failed: {e}. Yahoo occasionally rate-limits — wait a minute and retry.")
+        st.error(f"Data fetch failed: {e}")
 
 report = st.session_state.get("report")
 

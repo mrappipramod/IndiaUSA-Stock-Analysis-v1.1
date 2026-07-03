@@ -8,13 +8,43 @@ Nothing is fabricated: if Yahoo doesn't report a field, the check is marked
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 
 import pandas as pd
 import yfinance as yf
 
+try:  # browser-impersonating HTTP session — dramatically reduces Yahoo 429s
+    from curl_cffi import requests as curl_requests
+    _SESSION = curl_requests.Session(impersonate="chrome")
+except Exception:  # fall back to yfinance's default session
+    _SESSION = None
+
 PASS, WARN, FAIL, NA = "PASS", "WARN", "FAIL", "N/A"
+
+
+class RateLimited(Exception):
+    """Yahoo returned 429 for every retry attempt."""
+
+
+def _fetch_with_retry(ticker: str, attempts: int = 4):
+    """Fetch info + 1y history with exponential backoff on rate limits."""
+    last_err = None
+    for i in range(attempts):
+        try:
+            tk = yf.Ticker(ticker, session=_SESSION) if _SESSION else yf.Ticker(ticker)
+            info = tk.info or {}
+            hist = tk.history(period="1y", auto_adjust=True)
+            if info.get("longName") or info.get("shortName") or not hist.empty:
+                return info, hist
+            last_err = ValueError("empty response")
+        except Exception as e:  # yfinance raises different exception types per version
+            last_err = e
+            if "429" not in str(e) and "Too Many Requests" not in str(e) and "rate" not in str(e).lower():
+                raise  # not a rate limit — surface immediately (bad ticker, network, …)
+        time.sleep(2 ** i + 1)  # 2s, 3s, 5s, 9s
+    raise RateLimited(str(last_err))
 
 
 @dataclass
@@ -112,15 +142,14 @@ def _rsi(close: pd.Series, period: int = 14) -> float | None:
 # ---------------------------------------------------------------------------
 
 def run_validations(ticker: str) -> Report:
-    tk = yf.Ticker(ticker.strip())
-    info = tk.info or {}
+    ticker = ticker.strip()
+    info, hist = _fetch_with_retry(ticker)
     if not info.get("longName") and not info.get("shortName"):
         raise ValueError(
             f"Yahoo Finance returned no data for '{ticker}'. "
             "Check the symbol (Indian stocks need the .NS suffix, e.g. RELIANCE.NS)."
         )
 
-    hist = tk.history(period="1y", auto_adjust=True)
     close = hist["Close"] if not hist.empty else None
     price = _num(info, "currentPrice") or (float(close.iloc[-1]) if close is not None and len(close) else None)
 
