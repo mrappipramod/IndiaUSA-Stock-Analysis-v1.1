@@ -134,45 +134,63 @@ def full_analysis(symbols: list[str], hist: dict[str, pd.DataFrame],
 
 
 # ------------------------------------------------------------------ alerts --
-def send_telegram(text: str) -> None:
+def send_telegram(blocks: list[str]) -> None:
+    """Send a list of self-contained HTML blocks, packing them into as few
+    messages as possible WITHOUT ever splitting inside a block (so tags can't
+    be cut in half — the cause of Telegram's \'can't parse entities\' 400s)."""
     token, chat = os.getenv("TELEGRAM_BOT_TOKEN"), os.getenv("TELEGRAM_CHAT_ID")
     if not token or not chat:
-        print("Telegram secrets not set — skipping alert. Message would have been:\n" + text)
+        print("Telegram secrets not set — skipping alert. Message would have been:\n"
+              + "\n".join(blocks))
         return
-    # Telegram caps messages at 4096 chars — split if needed
-    for i in range(0, len(text), 3900):
+    messages, current = [], ""
+    for b in blocks:
+        if current and len(current) + len(b) + 1 > 3800:
+            messages.append(current)
+            current = b
+        else:
+            current = current + "\n" + b if current else b
+    if current:
+        messages.append(current)
+    for n, msg in enumerate(messages, 1):
         r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
-                          json={"chat_id": chat, "text": text[i:i + 3900],
-                                "parse_mode": "HTML",
-                                "disable_web_page_preview": True},
-                          timeout=30)
+                          json={"chat_id": chat, "text": msg, "parse_mode": "HTML",
+                                "disable_web_page_preview": True}, timeout=30)
         if r.status_code != 200:
-            print(f"Telegram send failed: {r.status_code} {r.text[:200]}")
+            print(f"Telegram send failed ({n}/{len(messages)}): {r.status_code} {r.text[:200]}")
+        time.sleep(1)  # respect Telegram's per-chat rate limit
 
 
-def format_alert(hits: list[dict], scanned: int, prefiltered: int, threshold: float) -> str:
+def format_alert(hits: list[dict], scanned: int, prefiltered: int,
+                 threshold: float, max_fails: int = 0, top_n: int = 10) -> list[str]:
+    """Return self-contained HTML blocks (header, one per stock, footer).
+    All dynamic text is html-escaped so names like 'L&T' or 'M&M' can't
+    break Telegram's parser."""
+    from html import escape
     stamp = datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC")
-    head = (f"💎 <b>Pre-Buy Checklist Alert</b> — {stamp}\n"
-            f"Universe {scanned} → uptrend {prefiltered} → "
-            f"<b>{len(hits)} scored ≥ {threshold:g}</b>\n")
-    lines = []
+    blocks = [(f"💎 <b>Pre-Buy Checklist Alert</b> — {stamp}\n"
+               f"Universe {scanned} → uptrend {prefiltered} → "
+               f"<b>{len(hits)} clean setups</b>\n"
+               f"(score ≥ {threshold:g}, ≤ {max_fails} failed checks, top {top_n})")]
     for r in sorted(hits, key=lambda x: -(x["score"] or 0)):
-        cur = r.get("currency") or ""
+        cur = escape(r.get("currency") or "")
         fails = sum(1 for c in r["checks"] if c["status"] == "FAIL")
-        partial = " ⚠️partial data" if "PARTIAL" in (r["verdict"] or "") else ""
-        lines.append(
-            f"\n<b>{r['ticker']}</b> — {r['company']}\n"
-            f"  Score <b>{r['score']}</b>/100 · {fails} fails · {r['data_coverage']}{partial}\n"
-            f"  {cur} {r['price']:,.2f} · {r['sector']}"
+        price = f"{r['price']:,.2f}" if r.get("price") is not None else "—"
+        blocks.append(
+            f"\n<b>{escape(r['ticker'])}</b> — {escape(r['company'] or '')}\n"
+            f"  Score <b>{r['score']}</b>/100 · {fails} fails · {escape(r['data_coverage'])}\n"
+            f"  {cur} {price} · {escape(r['sector'] or '')}"
         )
-    foot = ("\n\nℹ️ Checklist screen from live Yahoo data — a research shortlist, "
-            "not investment advice. Verify before acting.")
-    return head + "".join(lines) + foot
+    blocks.append("\nℹ️ Checklist screen from live Yahoo data — a research shortlist, "
+                  "not investment advice. Verify before acting.")
+    return blocks
 
 
 # -------------------------------------------------------------------- main --
 def main() -> None:
-    threshold = float(os.getenv("SCORE_THRESHOLD", "80"))
+    threshold = float(os.getenv("SCORE_THRESHOLD", "85"))
+    max_fails = int(os.getenv("MAX_FAILS", "0"))       # failed checks allowed in an alert
+    top_n = int(os.getenv("TOP_N", "10"))              # cap alerts to the N best scorers
     av_key = os.getenv("ALPHAVANTAGE_KEY") or None
 
     print("Loading universe …")
@@ -187,15 +205,31 @@ def main() -> None:
     print("Stage 2: full 27-point checklist on survivors …")
     reports = full_analysis(survivors, hist, av_key)
 
-    hits = [r for r in reports if (r.get("score") or 0) >= threshold
-            and "PARTIAL" not in (r.get("verdict") or "")]
+    def n_fails(r):
+        return sum(1 for c in r["checks"] if c["status"] == "FAIL")
+
+    qualified = [r for r in reports if (r.get("score") or 0) >= threshold
+                 and "PARTIAL" not in (r.get("verdict") or "")]
+    clean = [r for r in qualified if n_fails(r) <= max_fails]
+    dropped_fails = len(qualified) - len(clean)
+    clean.sort(key=lambda r: (-(r["score"] or 0), n_fails(r)))
+    hits, dropped_topn = clean[:top_n], max(0, len(clean) - top_n)
     partial_hits = [r for r in reports if (r.get("score") or 0) >= threshold
                     and "PARTIAL" in (r.get("verdict") or "")]
+    print(f"Alert filter: {len(qualified)} scored ≥{threshold:g} → "
+          f"{len(clean)} with ≤{max_fails} fails → top {len(hits)} alerted "
+          f"(dropped: {dropped_fails} on fails, {dropped_topn} on top-N cap)")
 
     DATA_DIR.mkdir(exist_ok=True)
     out = {
         "run_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "threshold": threshold,
+        "max_fails": max_fails,
+        "top_n": top_n,
+        "qualified_but_filtered": [
+            {"ticker": r["ticker"], "score": r["score"], "fails": n_fails(r)}
+            for r in qualified if r not in hits
+        ],
         "universe_size": len(universe),
         "prefiltered": len(survivors),
         "alerts": [r["ticker"] for r in hits],
@@ -206,12 +240,13 @@ def main() -> None:
     print(f"Saved {len(reports)} reports → data/scan_results.json")
 
     if hits or partial_hits:
-        msg = format_alert(hits, len(universe), len(survivors), threshold)
+        from html import escape
+        blocks = format_alert(hits, len(universe), len(survivors), threshold, max_fails, top_n)
         if partial_hits:
-            msg += ("\n\n⚠️ Also scored ≥ threshold but with PARTIAL data "
-                    "(fundamentals were rate-limited, verify manually): "
-                    + ", ".join(r["ticker"] for r in partial_hits))
-        send_telegram(msg)
+            blocks.append("\n⚠️ Also scored ≥ threshold but with PARTIAL data "
+                          "(fundamentals were rate-limited, verify manually): "
+                          + escape(", ".join(r["ticker"] for r in partial_hits)))
+        send_telegram(blocks)
         print(f"Alerted {len(hits)} stocks (+{len(partial_hits)} partial).")
     else:
         print("No stock cleared the threshold today — no alert sent.")

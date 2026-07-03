@@ -69,7 +69,19 @@ For local runs, put the same keys in `.streamlit/secrets.toml` (already git-igno
 2. Repo → Settings → Secrets and variables → Actions → add `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (and optionally `ALPHAVANTAGE_KEY`).
 3. Push — the workflow runs Mon–Fri 10:30 UTC, or trigger manually from the Actions tab (workflow_dispatch).
 
-Every run also commits `data/scan_results.json` (all reports, not just alerts) back to the repo, so Git history is your free scan archive. Alerts flag stocks whose 80+ score came from PARTIAL data separately, so you know to verify those manually. To scan a custom list, add `data/universe_in.txt` / `data/universe_us.txt` (one symbol per line). Threshold: edit `SCORE_THRESHOLD` in the workflow.
+Every run also commits `data/scan_results.json` (all reports, not just alerts) back to the repo, so Git history is your free scan archive. Alerts flag stocks whose 80+ score came from PARTIAL data separately, so you know to verify those manually. To scan a custom list, add `data/universe_in.txt` / `data/universe_us.txt` (one symbol per line).
+
+**Alert tightness** — three dials in the workflow env (defaults tuned for a genuine shortlist, not 75 pings):
+- `SCORE_THRESHOLD` (default **85**) — minimum checklist score
+- `MAX_FAILS` (default **0**) — max failed checks allowed; 0 = only fully clean setups
+- `TOP_N` (default **10**) — hard cap, best scores first
+
+Everything that scored above threshold but got filtered is still recorded in `scan_results.json` under `qualified_but_filtered`, so nothing is hidden — the Telegram message is a shortlist, the JSON is the full picture. In a broad bull market expect the filters to bite hard; that's them working.
+
+## The honest scoreboard — did the alerts actually work?
+`track_performance.py` re-checks every past alert against reality. It reads all historical `scan_results.json` versions from git, takes each stock's **first** alert date, pulls real prices since then (one bulk request), and computes 30/90/180-day and to-date returns **minus the benchmark** (Nifty 50 for `.NS`, S&P 500 otherwise). Results land in `data/SCOREBOARD.md` — a table per alert plus median alpha and hit-rate. Immature horizons stay blank, never estimated.
+
+Runs automatically every Friday (and on any manual workflow run), or anytime with `python track_performance.py`. Judgement rule baked into the scoreboard: wait for 20+ matured alerts; if median 90-day alpha is ≈0 or negative, the 80-threshold system isn't beating the index — that's a real answer, and the whole point.
 
 ## Disclaimer
 Educational screening tool, not investment advice. Thresholds are general analyst rules of thumb — always judge ratios against sector peers and verify numbers in official filings.

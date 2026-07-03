@@ -34,13 +34,23 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ALPHAVANTAGE_KEY: ${{ secrets.ALPHAVANTAGE_KEY }}
-          SCORE_THRESHOLD: "80"
+          SCORE_THRESHOLD: "85"
+          MAX_FAILS: "0"
+          TOP_N: "10"
         run: python scanner.py
+
+      - name: Update alert scoreboard (weekly, Fridays)
+        if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.run_id, '') }}
+        run: |
+          if [ "$(date -u +%u)" = "5" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python track_performance.py
+          fi
 
       - name: Commit scan results
         run: |
           git config user.name "scan-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/scan_results.json
+          git add data/scan_results.json data/alert_performance.json data/SCOREBOARD.md 2>/dev/null || git add data/scan_results.json
           git diff --cached --quiet || git commit -m "scan: $(date -u +'%Y-%m-%d %H:%M') results"
+          git pull --rebase --autostash origin main
           git push
