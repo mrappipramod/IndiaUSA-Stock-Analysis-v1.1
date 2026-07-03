@@ -1,0 +1,46 @@
+name: Daily stock scan & Telegram alert
+
+on:
+  schedule:
+    # 10:30 UTC = 4:00 PM IST (after NSE close) — covers previous US close too.
+    # Runs Mon–Fri. Add a second cron like "0 21 * * 1-5" for a post-US-close scan.
+    - cron: "30 10 * * 1-5"
+  workflow_dispatch: {}   # lets you trigger a scan manually from the Actions tab
+
+permissions:
+  contents: write         # needed to commit scan_results.json back to the repo
+
+concurrency:
+  group: daily-scan
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scanner
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALPHAVANTAGE_KEY: ${{ secrets.ALPHAVANTAGE_KEY }}
+          SCORE_THRESHOLD: "80"
+        run: python scanner.py
+
+      - name: Commit scan results
+        run: |
+          git config user.name "scan-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/scan_results.json
+          git diff --cached --quiet || git commit -m "scan: $(date -u +'%Y-%m-%d %H:%M') results"
+          git push

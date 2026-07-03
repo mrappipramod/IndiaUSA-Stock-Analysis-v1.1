@@ -57,5 +57,19 @@ Streamlit Cloud wipes local files on restart, so reports are committed straight 
 
 For local runs, put the same keys in `.streamlit/secrets.toml` (already git-ignored).
 
+## Daily automatic scan + Telegram alerts (score ≥ 80)
+`scanner.py` + `.github/workflows/daily_scan.yml` scan the full universe (your repo's 484 Indian + 28 US stocks) every weekday at 4 PM IST on **GitHub Actions — free, no server needed**, and message you on Telegram only when a stock clears the checklist at 80+.
+
+**Why it's feasible without rate-limit pain — a two-stage funnel:**
+1. **Bulk price screen** (cheap endpoint, chunked): whole universe in a handful of requests → keep only uptrends (price > 200DMA and 50 > 200DMA). A stock can't score 80+ without this anyway.
+2. **Full 27-point checklist** only on survivors (typically 15–30% of the universe), politely paced at one fundamentals call per 3s.
+
+**Setup (once):**
+1. Telegram: message **@BotFather** → `/newbot` → copy the token. Send your new bot any message, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy `chat.id`.
+2. Repo → Settings → Secrets and variables → Actions → add `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (and optionally `ALPHAVANTAGE_KEY`).
+3. Push — the workflow runs Mon–Fri 10:30 UTC, or trigger manually from the Actions tab (workflow_dispatch).
+
+Every run also commits `data/scan_results.json` (all reports, not just alerts) back to the repo, so Git history is your free scan archive. Alerts flag stocks whose 80+ score came from PARTIAL data separately, so you know to verify those manually. To scan a custom list, add `data/universe_in.txt` / `data/universe_us.txt` (one symbol per line). Threshold: edit `SCORE_THRESHOLD` in the workflow.
+
 ## Disclaimer
 Educational screening tool, not investment advice. Thresholds are general analyst rules of thumb — always judge ratios against sector peers and verify numbers in official filings.
