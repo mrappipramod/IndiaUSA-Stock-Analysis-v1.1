@@ -32,6 +32,13 @@ Yahoo has no official API, and it throttles Streamlit Cloud's shared IPs. The ap
 
 When Yahoo rate-limits, the app automatically re-fetches from Alpha Vantage (NASDAQ-licensed, 25 free requests/day = ~12 analyses). Fields it doesn't provide (debt/equity, cash flow, volume…) show as N/A — never invented. Note: Alpha Vantage covers US/global tickers; NSE `.NS` symbols remain Yahoo-only.
 
+## Graceful degradation & manual data entry
+Yahoo throttles its **fundamentals** endpoint much harder than its **price/chart** endpoint. The app now fetches them independently:
+
+- If only fundamentals are blocked → you still get a real report: RSI, 200-DMA trend, 50/200 structure and 52-week position are computed **from actual price history**, and fundamental checks show *N/A — rate-limited* (never a fake zero score).
+- Low coverage is labeled: below 50% of the checklist, the verdict becomes **PARTIAL DATA — provisional** instead of pretending to be confident.
+- **✍️ Fill missing data manually**: look up the missing numbers yourself (stockanalysis.com, screener.in, Yahoo in your browser) and type them in — the score recalculates instantly, every affected check is labeled *manually entered*, and the values are stored in the saved JSON under `user_provided` so your GitHub history shows exactly which numbers were yours vs live.
+
 ## Deploy free on Streamlit Community Cloud
 1. Push this folder to a GitHub repo (e.g. `yourname/stock-validator`).
 2. Go to https://share.streamlit.io → **New app** → pick the repo → main file `app.py` → Deploy.

@@ -28,24 +28,68 @@ class RateLimited(Exception):
     """Yahoo returned 429 for every retry attempt."""
 
 
-def _fetch_with_retry(ticker: str, attempts: int = 4):
-    """Fetch info + 1y history with exponential backoff on rate limits."""
+def _retry(fn, attempts: int = 4):
     last_err = None
     for i in range(attempts):
         try:
-            tk = yf.Ticker(ticker, session=_SESSION) if _SESSION else yf.Ticker(ticker)
-            info = tk.info or {}
-            hist = tk.history(period="1y", auto_adjust=True)
-            if info.get("longName") or info.get("shortName") or not hist.empty:
-                return info, hist
-            last_err = ValueError("empty response")
-        except Exception as e:  # yfinance raises different exception types per version
+            return fn()
+        except Exception as e:
             last_err = e
-            if "429" not in str(e) and "Too Many Requests" not in str(e) and "rate" not in str(e).lower():
-                raise  # not a rate limit — surface immediately (bad ticker, network, …)
+            msg = str(e)
+            if "429" not in msg and "Too Many Requests" not in msg and "rate" not in msg.lower():
+                raise
         time.sleep(2 ** i + 1)  # 2s, 3s, 5s, 9s
     raise RateLimited(str(last_err))
 
+
+def fetch_data(ticker: str, av_key: str | None = None):
+    """Fetch (info, hist, source_label). Info and history are fetched INDEPENDENTLY:
+    Yahoo throttles the fundamentals endpoint far harder than the price/chart endpoint,
+    so a rate-limited `info` degrades to a price-only report instead of failing."""
+    tk = yf.Ticker(ticker, session=_SESSION) if _SESSION else yf.Ticker(ticker)
+    source = "Yahoo Finance"
+
+    # price history (cheap endpoint, rarely blocked)
+    try:
+        hist = _retry(lambda: tk.history(period="1y", auto_adjust=True))
+    except RateLimited:
+        hist = pd.DataFrame()
+
+    # fundamentals (heavily throttled endpoint)
+    info, info_limited = {}, False
+    try:
+        info = _retry(lambda: tk.info or {})
+    except RateLimited:
+        info_limited = True
+
+    if info_limited or not (info.get("longName") or info.get("shortName")):
+        if av_key:  # official fallback
+            try:
+                import alpha_vantage
+                av_info, av_hist = alpha_vantage.fetch(ticker, av_key)
+                info = av_info
+                if hist.empty:
+                    hist = av_hist
+                source = "Alpha Vantage (Yahoo fundamentals were rate-limited)"
+                info_limited = False
+            except Exception:
+                pass
+        if info_limited and not hist.empty:
+            source = "Yahoo price data only — fundamentals endpoint rate-limited"
+        elif info_limited:
+            raise RateLimited("both Yahoo endpoints throttled")
+
+    if not (info.get("longName") or info.get("shortName")) and hist.empty:
+        raise ValueError(
+            f"No data found for '{ticker}'. Check the symbol "
+            "(Indian stocks need the .NS suffix, e.g. RELIANCE.NS)."
+        )
+    return info, hist, source
+
+
+# ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
 
 @dataclass
 class Check:
@@ -72,15 +116,11 @@ class Report:
     verdict: str = ""
     data_coverage: str = ""
     data_source: str = "Yahoo Finance"
+    user_provided: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        d = asdict(self)
-        return d
+        return asdict(self)
 
-
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
 
 def _num(info: dict, key: str):
     v = info.get(key)
@@ -142,24 +182,85 @@ def _rsi(close: pd.Series, period: int = 14) -> float | None:
 # the analyst checklist
 # ---------------------------------------------------------------------------
 
-def run_validations(ticker: str, av_key: str | None = None) -> Report:
-    ticker = ticker.strip()
-    source = "Yahoo Finance"
-    try:
-        info, hist = _fetch_with_retry(ticker)
-    except RateLimited:
-        if not av_key:
-            raise
-        import alpha_vantage
-        info, hist = alpha_vantage.fetch(ticker, av_key)
-        source = "Alpha Vantage (Yahoo was rate-limited)"
-    if not info.get("longName") and not info.get("shortName"):
-        raise ValueError(
-            f"Yahoo Finance returned no data for '{ticker}'. "
-            "Check the symbol (Indian stocks need the .NS suffix, e.g. RELIANCE.NS)."
-        )
+# Fields the user may enter manually when a source doesn't report them.
+# key: (label, how to enter it, enter_as_percent)
+MANUAL_FIELDS = {
+    "trailingPE":            ("P/E ratio (trailing)", "e.g. 24.5", False),
+    "forwardPE":             ("Forward P/E", "e.g. 21.0", False),
+    "trailingPegRatio":      ("PEG ratio", "e.g. 1.8", False),
+    "priceToBook":           ("Price to book", "e.g. 4.2", False),
+    "enterpriseToEbitda":    ("EV / EBITDA", "e.g. 14.0", False),
+    "returnOnEquity":        ("Return on equity %", "enter 18 for 18%", True),
+    "returnOnAssets":        ("Return on assets %", "enter 7 for 7%", True),
+    "operatingMargins":      ("Operating margin %", "enter 15 for 15%", True),
+    "profitMargins":         ("Net margin %", "enter 12 for 12%", True),
+    "revenueGrowth":         ("Revenue growth yoy %", "enter 10 for 10%", True),
+    "earningsGrowth":        ("Earnings growth yoy %", "enter 10 for 10%", True),
+    "debtToEquity":          ("Debt/equity %", "enter 45 for 0.45x (45%)", False),
+    "currentRatio":          ("Current ratio", "e.g. 1.6", False),
+    "totalCash":             ("Total cash (absolute)", "e.g. 25000000000", False),
+    "totalDebt":             ("Total debt (absolute)", "e.g. 18000000000", False),
+    "freeCashflow":          ("Free cash flow (absolute)", "negative allowed", False),
+    "operatingCashflow":     ("Operating cash flow (absolute)", "", False),
+    "netIncomeToCommon":     ("Net income (absolute)", "", False),
+    "payoutRatio":           ("Dividend payout %", "enter 35 for 35%", True),
+    "marketCap":             ("Market cap (absolute)", "e.g. 5000000000", False),
+    "averageVolume":         ("Average daily volume (shares)", "e.g. 800000", False),
+    "beta":                  ("Beta", "e.g. 1.1", False),
+    "heldPercentInstitutions": ("Institutional holding %", "enter 40 for 40%", True),
+    "shortPercentOfFloat":   ("Short interest % of float", "enter 3 for 3%", True),
+    "recommendationMean":    ("Analyst consensus (1=strong buy … 5=sell)", "e.g. 2.1", False),
+    "fiftyDayAverage":       ("50-day moving average price", "", False),
+    "twoHundredDayAverage":  ("200-day moving average price", "", False),
+    "fiftyTwoWeekLow":       ("52-week low", "", False),
+    "fiftyTwoWeekHigh":      ("52-week high", "", False),
+}
 
-    close = hist["Close"] if not hist.empty else None
+# which info keys feed each check (used to mark manually-entered values)
+_CHECK_KEYS = {
+    "P/E ratio": ["trailingPE"], "Forward vs trailing P/E": ["forwardPE", "trailingPE"],
+    "PEG ratio": ["trailingPegRatio"], "Price to book": ["priceToBook"],
+    "EV / EBITDA": ["enterpriseToEbitda"], "Return on equity": ["returnOnEquity"],
+    "Return on assets": ["returnOnAssets"], "Operating margin": ["operatingMargins"],
+    "Net margin": ["profitMargins"], "Revenue growth (yoy)": ["revenueGrowth"],
+    "Earnings growth (yoy)": ["earningsGrowth"], "Debt to equity": ["debtToEquity"],
+    "Current ratio": ["currentRatio"], "Net cash position": ["totalCash", "totalDebt"],
+    "Free cash flow": ["freeCashflow"],
+    "Earnings quality (OCF / net income)": ["operatingCashflow", "netIncomeToCommon"],
+    "Dividend payout ratio": ["payoutRatio"], "Market cap": ["marketCap"],
+    "Average daily volume": ["averageVolume"], "Beta (volatility vs market)": ["beta"],
+    "Institutional holding": ["heldPercentInstitutions"],
+    "Short interest": ["shortPercentOfFloat"], "Analyst consensus": ["recommendationMean"],
+    "Price vs 200-day average": ["twoHundredDayAverage"],
+    "Trend structure (50 vs 200 DMA)": ["fiftyDayAverage", "twoHundredDayAverage"],
+    "52-week range position": ["fiftyTwoWeekLow", "fiftyTwoWeekHigh"],
+}
+
+
+def missing_manual_fields(info: dict) -> dict:
+    """Subset of MANUAL_FIELDS the current data source did not report."""
+    return {k: v for k, v in MANUAL_FIELDS.items() if _num(info, k) is None}
+
+
+def run_validations(ticker: str, av_key: str | None = None,
+                    overrides: dict | None = None) -> Report:
+    info, hist, source = fetch_data(ticker.strip(), av_key)
+    return compute_report(ticker, info, hist, source, overrides)
+
+
+def compute_report(ticker: str, info: dict, hist, source: str,
+                   overrides: dict | None = None) -> Report:
+    """Build the report. `overrides` = {info_key: float} of values the user
+    looked up and entered manually; they fill gaps only (never replace live
+    data) and every affected check is labeled as user-provided."""
+    ticker = ticker.strip()
+    overrides = {k: v for k, v in (overrides or {}).items() if v is not None}
+    used_overrides = {k: v for k, v in overrides.items() if _num(info, k) is None}
+    if used_overrides:
+        info = {**info, **used_overrides}
+        source = source + " + manually entered fields"
+
+    close = hist["Close"] if hist is not None and not hist.empty else None
     price = _num(info, "currentPrice") or (float(close.iloc[-1]) if close is not None and len(close) else None)
 
     checks: list[Check] = []
@@ -288,6 +389,11 @@ def run_validations(ticker: str, av_key: str | None = None) -> Report:
 
     # ---- 7. Price action & timing ----------------------------------------
     ma50, ma200 = _num(info, "fiftyDayAverage"), _num(info, "twoHundredDayAverage")
+    if close is not None:  # derive from real price history when the source omits them
+        if ma50 is None and len(close) >= 50:
+            ma50 = float(close.tail(50).mean())
+        if ma200 is None and len(close) >= 200:
+            ma200 = float(close.tail(200).mean())
     if price and ma200:
         add("Timing", "Price vs 200-day average", f"price {_fmt(price)} vs 200DMA {_fmt(ma200)}",
             "Trading above the 200DMA = long-term uptrend intact",
@@ -304,6 +410,9 @@ def run_validations(ticker: str, av_key: str | None = None) -> Report:
             "50DMA above 200DMA", NA)
 
     lo, hi = _num(info, "fiftyTwoWeekLow"), _num(info, "fiftyTwoWeekHigh")
+    if close is not None and len(close) >= 200:
+        lo = lo if lo is not None else float(close.min())
+        hi = hi if hi is not None else float(close.max())
     if price and lo and hi and hi > lo:
         pos = (price - lo) / (hi - lo) * 100
         status = PASS if 30 <= pos <= 90 else WARN
@@ -362,9 +471,19 @@ def run_validations(ticker: str, av_key: str | None = None) -> Report:
     total_w = sum(c.weight for c in scored)
     score = round(100 * sum(pts[c.status] * c.weight for c in scored) / total_w, 1) if total_w else None
 
+    for c in checks:  # label anything computed from a manual value
+        if any(k in used_overrides for k in _CHECK_KEYS.get(c.name, [])):
+            c.note = ("Uses a manually entered value — verify it against official filings. "
+                      + c.note).strip()
+
     fails = sum(1 for c in scored if c.status == FAIL)
+    all_w = sum(c.weight for c in checks)
+    coverage = total_w / all_w if all_w else 0
     if score is None:
         verdict = "INSUFFICIENT DATA"
+    elif coverage < 0.5:
+        verdict = (f"PARTIAL DATA ({int(coverage*100)}% of checklist) — score is provisional; "
+                   "fill missing fields or retry when data is available")
     elif score >= 75 and fails <= 2:
         verdict = "STRONG CANDIDATE — proceed to deep research"
     elif score >= 60:
@@ -387,4 +506,5 @@ def run_validations(ticker: str, av_key: str | None = None) -> Report:
         verdict=verdict,
         data_coverage=f"{len(scored)}/{len(checks)} checks had data",
         data_source=source,
+        user_provided=used_overrides,
     )

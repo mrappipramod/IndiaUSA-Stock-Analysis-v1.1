@@ -8,16 +8,17 @@ Storage:       each analysis is committed as JSON to your GitHub repo.
 import pandas as pd
 import streamlit as st
 
-from validations import run_validations, RateLimited, PASS, WARN, FAIL, NA
+from validations import fetch_data, compute_report, missing_manual_fields, MANUAL_FIELDS, RateLimited, PASS, WARN, FAIL, NA
 import github_store
 
 st.set_page_config(page_title="Pre-Buy Stock Validator", page_icon="✅", layout="wide")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def cached_validation(symbol: str, av_key: str | None):
-    """Cache results for 1h so repeat lookups (any user, same server) don't re-hit Yahoo."""
-    return run_validations(symbol, av_key=av_key)
+def cached_fetch(symbol: str, av_key: str | None):
+    """Cache raw data 1h so repeat lookups and manual re-scoring never re-hit Yahoo."""
+    info, hist, source = fetch_data(symbol, av_key)
+    return info, hist, source
 
 
 ICON = {PASS: "✅", WARN: "⚠️", FAIL: "❌", NA: "➖"}
@@ -64,8 +65,10 @@ with st.sidebar:
 if go and ticker:
     try:
         with st.spinner(f"Pulling Yahoo Finance data for {ticker.upper()} … (retries automatically if rate-limited)"):
-            report = cached_validation(ticker.upper(), av_key or None)
-        st.session_state["report"] = report
+            info, hist, source = cached_fetch(ticker.upper(), av_key or None)
+        st.session_state["fetched"] = (ticker.upper(), info, hist, source)
+        st.session_state["overrides"] = {}
+        st.session_state["report"] = compute_report(ticker.upper(), info, hist, source)
     except ValueError as e:
         st.error(str(e))
     except RateLimited:
@@ -114,6 +117,41 @@ if report:
                 b.markdown(f"### {ICON[row['Status']]} {row['Status']}")
                 if row["Note"]:
                     st.info(row["Note"], icon="💡")
+
+    # -------- fill gaps manually --------
+    missing = missing_manual_fields(
+        {**st.session_state["fetched"][1], **st.session_state.get("overrides", {})}
+    ) if "fetched" in st.session_state else {}
+    if missing:
+        with st.expander(f"✍️ Fill missing data manually ({len(missing)} fields unavailable from the source)"):
+            st.markdown(
+                "Look these up yourself and enter them — the score recalculates with your "
+                "numbers, and every affected check is **labeled as manually entered**. "
+                "Good free sources: "
+                "[stockanalysis.com](https://stockanalysis.com), "
+                "[screener.in](https://www.screener.in) (Indian stocks), "
+                "[finance.yahoo.com](https://finance.yahoo.com) (works in a browser even "
+                "when this server is rate-limited), or the company's latest filings."
+            )
+            cols = st.columns(3)
+            new_vals = {}
+            for i, (key, (label, hint, is_pct)) in enumerate(missing.items()):
+                with cols[i % 3]:
+                    v = st.number_input(label, value=None, help=hint or None,
+                                        format="%.4f", key=f"man_{key}")
+                    if v is not None:
+                        new_vals[key] = v / 100 if is_pct else v
+            if st.button("🔁 Recalculate score with my numbers", type="primary"):
+                st.session_state["overrides"] = {**st.session_state.get("overrides", {}), **new_vals}
+                tkr, info, hist, source = st.session_state["fetched"]
+                st.session_state["report"] = compute_report(
+                    tkr, info, hist, source, overrides=st.session_state["overrides"])
+                st.rerun()
+
+    if report.user_provided:
+        st.warning(f"{len(report.user_provided)} field(s) in this score were entered manually "
+                   "and are not independently verified — double-check them against official "
+                   "filings before acting.", icon="✍️")
 
     # -------- save / export --------
     st.divider()
