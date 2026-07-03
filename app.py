@@ -15,9 +15,9 @@ st.set_page_config(page_title="Pre-Buy Stock Validator", page_icon="✅", layout
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def cached_validation(symbol: str):
+def cached_validation(symbol: str, av_key: str | None):
     """Cache results for 1h so repeat lookups (any user, same server) don't re-hit Yahoo."""
-    return run_validations(symbol)
+    return run_validations(symbol, av_key=av_key)
 
 
 ICON = {PASS: "✅", WARN: "⚠️", FAIL: "❌", NA: "➖"}
@@ -37,6 +37,17 @@ with st.sidebar:
     go = st.button("Run validation", type="primary", use_container_width=True)
 
     st.divider()
+    st.subheader("Backup data source")
+    av_key = st.secrets.get("ALPHAVANTAGE_KEY", "")
+    if av_key:
+        st.success("Alpha Vantage fallback active")
+    else:
+        st.info("Optional: add a free ALPHAVANTAGE_KEY in secrets "
+                "(alphavantage.co/support/#api-key) and the app auto-switches to the "
+                "official Alpha Vantage API whenever Yahoo rate-limits. "
+                "US & global tickers only — NSE (.NS) stays Yahoo-only.")
+
+    st.divider()
     st.subheader("GitHub storage")
     gh_ok = "GITHUB_TOKEN" in st.secrets and "GITHUB_REPO" in st.secrets
     if gh_ok:
@@ -53,14 +64,15 @@ with st.sidebar:
 if go and ticker:
     try:
         with st.spinner(f"Pulling Yahoo Finance data for {ticker.upper()} … (retries automatically if rate-limited)"):
-            report = cached_validation(ticker.upper())
+            report = cached_validation(ticker.upper(), av_key or None)
         st.session_state["report"] = report
     except ValueError as e:
         st.error(str(e))
     except RateLimited:
-        st.error("Yahoo is rate-limiting this server right now, even after 4 retries. "
-                 "Wait 2–5 minutes and try again — results are cached for an hour once a "
-                 "ticker succeeds, so it won't need to re-fetch.")
+        st.error("Yahoo is rate-limiting this server even after 4 retries, and no backup "
+                 "source is configured. Add a free ALPHAVANTAGE_KEY in the app secrets "
+                 "(link in the sidebar) so this never blocks you — or wait 2–5 minutes; "
+                 "successful results are cached for an hour.")
     except Exception as e:
         st.error(f"Data fetch failed: {e}")
 
@@ -78,7 +90,7 @@ if report:
     c4.metric("Verdict", report.verdict.split("—")[0].strip(),
               help=report.verdict)
 
-    st.caption(f"{report.data_coverage} · generated {report.generated_utc} · source: Yahoo Finance")
+    st.caption(f"{report.data_coverage} · generated {report.generated_utc} · source: {report.data_source}")
 
     if report.score is not None:
         st.progress(min(report.score / 100, 1.0))

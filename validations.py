@@ -71,6 +71,7 @@ class Report:
     score: float | None = None
     verdict: str = ""
     data_coverage: str = ""
+    data_source: str = "Yahoo Finance"
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -141,9 +142,17 @@ def _rsi(close: pd.Series, period: int = 14) -> float | None:
 # the analyst checklist
 # ---------------------------------------------------------------------------
 
-def run_validations(ticker: str) -> Report:
+def run_validations(ticker: str, av_key: str | None = None) -> Report:
     ticker = ticker.strip()
-    info, hist = _fetch_with_retry(ticker)
+    source = "Yahoo Finance"
+    try:
+        info, hist = _fetch_with_retry(ticker)
+    except RateLimited:
+        if not av_key:
+            raise
+        import alpha_vantage
+        info, hist = alpha_vantage.fetch(ticker, av_key)
+        source = "Alpha Vantage (Yahoo was rate-limited)"
     if not info.get("longName") and not info.get("shortName"):
         raise ValueError(
             f"Yahoo Finance returned no data for '{ticker}'. "
@@ -377,4 +386,5 @@ def run_validations(ticker: str) -> Report:
         score=score,
         verdict=verdict,
         data_coverage=f"{len(scored)}/{len(checks)} checks had data",
+        data_source=source,
     )

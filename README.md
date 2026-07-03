@@ -24,6 +24,14 @@ streamlit run app.py
 ```
 Indian tickers need the exchange suffix: `RELIANCE.NS`, `TCS.NS` (NSE) or `.BO` (BSE).
 
+## Rate limits & the automatic fallback
+Yahoo has no official API, and it throttles Streamlit Cloud's shared IPs. The app defends itself with a Chrome-fingerprint session (`curl_cffi`), retries with backoff, and a 1-hour result cache. For a guarantee, add a **free official API** as fallback:
+
+1. Get a free key (30 seconds, no card): https://www.alphavantage.co/support/#api-key
+2. Add to Streamlit secrets: `ALPHAVANTAGE_KEY = "your_key"`
+
+When Yahoo rate-limits, the app automatically re-fetches from Alpha Vantage (NASDAQ-licensed, 25 free requests/day = ~12 analyses). Fields it doesn't provide (debt/equity, cash flow, volume…) show as N/A — never invented. Note: Alpha Vantage covers US/global tickers; NSE `.NS` symbols remain Yahoo-only.
+
 ## Deploy free on Streamlit Community Cloud
 1. Push this folder to a GitHub repo (e.g. `yourname/stock-validator`).
 2. Go to https://share.streamlit.io → **New app** → pick the repo → main file `app.py` → Deploy.
