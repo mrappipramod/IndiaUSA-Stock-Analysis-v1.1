@@ -1,6 +1,19 @@
 {
- "updated_utc": "2026-10-16T15:24:12+00:00",
+ "updated_utc": "2026-10-23T15:33:24+00:00",
  "alerts": [
+  {
+   "ticker": "GRANULES.NS",
+   "alert_date": "2026-07-03",
+   "benchmark": "^NSEI",
+   "ret_30d": 1.34,
+   "alpha_30d": -0.73,
+   "ret_90d": -1.24,
+   "alpha_90d": 6.38,
+   "ret_180d": null,
+   "alpha_180d": null,
+   "ret_to_date": -4.48,
+   "alpha_to_date": 2.4
+  },
   {
    "ticker": "ATUL.NS",
    "alert_date": "2026-07-03",
@@ -11,8 +24,8 @@
    "alpha_90d": -2.55,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -5.02,
-   "alpha_to_date": -0.39
+   "ret_to_date": -14.54,
+   "alpha_to_date": -7.66
   },
   {
    "ticker": "LUPIN.NS",
@@ -24,21 +37,8 @@
    "alpha_90d": -9.75,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -20.2,
-   "alpha_to_date": -15.57
-  },
-  {
-   "ticker": "GRANULES.NS",
-   "alert_date": "2026-07-03",
-   "benchmark": "^NSEI",
-   "ret_30d": 1.34,
-   "alpha_30d": -0.73,
-   "ret_90d": -1.24,
-   "alpha_90d": 6.38,
-   "ret_180d": null,
-   "alpha_180d": null,
-   "ret_to_date": -0.81,
-   "alpha_to_date": 3.82
+   "ret_to_date": -21.53,
+   "alpha_to_date": -14.65
   },
   {
    "ticker": "AFL",
@@ -50,8 +50,8 @@
    "alpha_90d": -8.96,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -0.31,
-   "alpha_to_date": -2.66
+   "ret_to_date": 0.89,
+   "alpha_to_date": -0.69
   },
   {
    "ticker": "AUBANK.NS",
@@ -63,8 +63,8 @@
    "alpha_90d": 0.96,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -6.43,
-   "alpha_to_date": -1.8
+   "ret_to_date": -11.77,
+   "alpha_to_date": -4.89
   },
   {
    "ticker": "KPIL.NS",
@@ -76,8 +76,8 @@
    "alpha_90d": 5.63,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -1.42,
-   "alpha_to_date": 3.21
+   "ret_to_date": -6.68,
+   "alpha_to_date": 0.2
   },
   {
    "ticker": "COALINDIA.NS",
@@ -89,8 +89,8 @@
    "alpha_90d": 5.96,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -2.41,
-   "alpha_to_date": 2.22
+   "ret_to_date": -7.03,
+   "alpha_to_date": -0.15
   },
   {
    "ticker": "CIEINDIA.NS",
@@ -102,8 +102,8 @@
    "alpha_90d": -12.48,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -19.92,
-   "alpha_to_date": -15.29
+   "ret_to_date": -25.37,
+   "alpha_to_date": -18.49
   },
   {
    "ticker": "RBLBANK.NS",
@@ -115,8 +115,8 @@
    "alpha_90d": 21.84,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 5.02,
-   "alpha_to_date": 9.65
+   "ret_to_date": -4.03,
+   "alpha_to_date": 2.85
   },
   {
    "ticker": "ALGN",
@@ -128,8 +128,8 @@
    "alpha_90d": -24.56,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -21.18,
-   "alpha_to_date": -23.53
+   "ret_to_date": -17.73,
+   "alpha_to_date": -19.31
   },
   {
    "ticker": "JSWSTEEL.NS",
@@ -141,8 +141,8 @@
    "alpha_90d": 6.01,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -0.78,
-   "alpha_to_date": 2.63
+   "ret_to_date": -3.29,
+   "alpha_to_date": 2.4
   },
   {
    "ticker": "EMCURE.NS",
@@ -154,8 +154,8 @@
    "alpha_90d": 11.87,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 0.81,
-   "alpha_to_date": 4.22
+   "ret_to_date": -1.97,
+   "alpha_to_date": 3.72
   },
   {
    "ticker": "ENDURANCE.NS",
@@ -167,8 +167,8 @@
    "alpha_90d": -0.88,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -10.05,
-   "alpha_to_date": -5.67
+   "ret_to_date": -16.37,
+   "alpha_to_date": -9.73
   },
   {
    "ticker": "ANGELONE.NS",
@@ -180,8 +180,8 @@
    "alpha_90d": 0.94,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -8.52,
-   "alpha_to_date": -3.64
+   "ret_to_date": -14.51,
+   "alpha_to_date": -7.38
   },
   {
    "ticker": "FEDERALBNK.NS",
@@ -189,12 +189,12 @@
    "benchmark": "^NSEI",
    "ret_30d": 1.29,
    "alpha_30d": -0.17,
-   "ret_90d": null,
-   "alpha_90d": null,
+   "ret_90d": -2.6,
+   "alpha_90d": 1.83,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -4.3,
-   "alpha_to_date": -1.27
+   "ret_to_date": -3.48,
+   "alpha_to_date": 1.84
   },
   {
    "ticker": "KARURVYSYA.NS",
@@ -202,12 +202,12 @@
    "benchmark": "^NSEI",
    "ret_30d": 1.15,
    "alpha_30d": -0.31,
-   "ret_90d": null,
-   "alpha_90d": null,
+   "ret_90d": 7.58,
+   "alpha_90d": 12.01,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 6.39,
-   "alpha_to_date": 9.42
+   "ret_to_date": 0.6,
+   "alpha_to_date": 5.92
   },
   {
    "ticker": "OBEROIRLTY.NS",
@@ -215,12 +215,12 @@
    "benchmark": "^NSEI",
    "ret_30d": 2.85,
    "alpha_30d": 1.39,
-   "ret_90d": null,
-   "alpha_90d": null,
+   "ret_90d": -9.39,
+   "alpha_90d": -4.96,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -6.33,
-   "alpha_to_date": -3.3
+   "ret_to_date": -11.19,
+   "alpha_to_date": -5.87
   },
   {
    "ticker": "BALL",
@@ -228,12 +228,12 @@
    "benchmark": "^GSPC",
    "ret_30d": 3.52,
    "alpha_30d": 0.22,
-   "ret_90d": null,
-   "alpha_90d": null,
+   "ret_90d": 3.41,
+   "alpha_90d": -1.3,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 2.51,
-   "alpha_to_date": -1.62
+   "ret_to_date": 4.78,
+   "alpha_to_date": 1.43
   },
   {
    "ticker": "ABSLAMC.NS",
@@ -241,12 +241,12 @@
    "benchmark": "^NSEI",
    "ret_30d": 1.29,
    "alpha_30d": -0.17,
-   "ret_90d": null,
-   "alpha_90d": null,
+   "ret_90d": -3.61,
+   "alpha_90d": 0.82,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -1.42,
-   "alpha_to_date": 1.61
+   "ret_to_date": -9.83,
+   "alpha_to_date": -4.51
   },
   {
    "ticker": "CUB.NS",
@@ -258,8 +258,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 6.51,
-   "alpha_to_date": 11.33
+   "ret_to_date": 4.0,
+   "alpha_to_date": 11.06
   },
   {
    "ticker": "EOG",
@@ -271,8 +271,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 6.45,
-   "alpha_to_date": 2.73
+   "ret_to_date": 13.95,
+   "alpha_to_date": 11.0
   },
   {
    "ticker": "CINF",
@@ -284,8 +284,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -2.07,
-   "alpha_to_date": -5.79
+   "ret_to_date": 1.76,
+   "alpha_to_date": -1.19
   },
   {
    "ticker": "BANDHANBNK.NS",
@@ -297,8 +297,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -2.18,
-   "alpha_to_date": 2.64
+   "ret_to_date": -12.47,
+   "alpha_to_date": -5.41
   },
   {
    "ticker": "USHAMART.NS",
@@ -310,8 +310,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -1.47,
-   "alpha_to_date": 3.35
+   "ret_to_date": -7.74,
+   "alpha_to_date": -0.68
   },
   {
    "ticker": "GL",
@@ -323,8 +323,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -7.4,
-   "alpha_to_date": -11.12
+   "ret_to_date": -13.46,
+   "alpha_to_date": -16.41
   },
   {
    "ticker": "RJF",
@@ -336,8 +336,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -9.39,
-   "alpha_to_date": -13.11
+   "ret_to_date": -8.91,
+   "alpha_to_date": -11.86
   },
   {
    "ticker": "ZFCVINDIA.NS",
@@ -349,8 +349,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -10.79,
-   "alpha_to_date": -5.72
+   "ret_to_date": -11.8,
+   "alpha_to_date": -4.49
   },
   {
    "ticker": "WELCORP.NS",
@@ -362,8 +362,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 55.79,
-   "alpha_to_date": 60.86
+   "ret_to_date": 44.72,
+   "alpha_to_date": 52.03
   },
   {
    "ticker": "JPPOWER.NS",
@@ -375,8 +375,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -18.15,
-   "alpha_to_date": -13.08
+   "ret_to_date": -30.73,
+   "alpha_to_date": -23.42
   },
   {
    "ticker": "GESHIP.NS",
@@ -388,8 +388,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 12.62,
-   "alpha_to_date": 18.67
+   "ret_to_date": 11.81,
+   "alpha_to_date": 20.07
   },
   {
    "ticker": "NATIONALUM.NS",
@@ -401,8 +401,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -14.68,
-   "alpha_to_date": -8.63
+   "ret_to_date": -20.6,
+   "alpha_to_date": -12.34
   },
   {
    "ticker": "AUROPHARMA.NS",
@@ -414,8 +414,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 0.54,
-   "alpha_to_date": 6.34
+   "ret_to_date": -5.21,
+   "alpha_to_date": 2.81
   },
   {
    "ticker": "GAIL.NS",
@@ -427,8 +427,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -2.9,
-   "alpha_to_date": 2.9
+   "ret_to_date": -5.3,
+   "alpha_to_date": 2.72
   },
   {
    "ticker": "GLENMARK.NS",
@@ -440,8 +440,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -3.93,
-   "alpha_to_date": 1.19
+   "ret_to_date": -6.52,
+   "alpha_to_date": 0.84
   },
   {
    "ticker": "FINCABLES.NS",
@@ -453,21 +453,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 10.26,
-   "alpha_to_date": 15.38
-  },
-  {
-   "ticker": "HINDALCO.NS",
-   "alert_date": "2026-08-20",
-   "benchmark": "^NSEI",
-   "ret_30d": -4.72,
-   "alpha_30d": -1.35,
-   "ret_90d": null,
-   "alpha_90d": null,
-   "ret_180d": null,
-   "alpha_180d": null,
-   "ret_to_date": -11.83,
-   "alpha_to_date": -7.35
+   "ret_to_date": -12.11,
+   "alpha_to_date": -4.75
   },
   {
    "ticker": "KAJARIACER.NS",
@@ -479,21 +466,21 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -0.3,
-   "alpha_to_date": 4.18
+   "ret_to_date": -6.42,
+   "alpha_to_date": 0.31
   },
   {
-   "ticker": "COP",
-   "alert_date": "2026-08-28",
-   "benchmark": "^GSPC",
-   "ret_30d": -3.31,
-   "alpha_30d": -2.95,
+   "ticker": "HINDALCO.NS",
+   "alert_date": "2026-08-20",
+   "benchmark": "^NSEI",
+   "ret_30d": -4.72,
+   "alpha_30d": -1.35,
    "ret_90d": null,
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 10.48,
-   "alpha_to_date": 10.44
+   "ret_to_date": -15.54,
+   "alpha_to_date": -8.81
   },
   {
    "ticker": "OXY",
@@ -505,8 +492,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 3.87,
-   "alpha_to_date": 3.83
+   "ret_to_date": 10.07,
+   "alpha_to_date": 10.78
   },
   {
    "ticker": "CF",
@@ -518,8 +505,21 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -5.38,
-   "alpha_to_date": -5.42
+   "ret_to_date": -3.64,
+   "alpha_to_date": -2.93
+  },
+  {
+   "ticker": "COP",
+   "alert_date": "2026-08-28",
+   "benchmark": "^GSPC",
+   "ret_30d": -3.31,
+   "alpha_30d": -2.95,
+   "ret_90d": null,
+   "alpha_90d": null,
+   "ret_180d": null,
+   "alpha_180d": null,
+   "ret_to_date": 17.04,
+   "alpha_to_date": 17.75
   },
   {
    "ticker": "OIL.NS",
@@ -531,8 +531,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -8.87,
-   "alpha_to_date": -5.73
+   "ret_to_date": -8.28,
+   "alpha_to_date": -2.85
   },
   {
    "ticker": "ECLERX.NS",
@@ -544,21 +544,21 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 3.01,
-   "alpha_to_date": 4.42
+   "ret_to_date": -0.43,
+   "alpha_to_date": 3.31
   },
   {
    "ticker": "KOTAKBANK.NS",
    "alert_date": "2026-09-18",
    "benchmark": "^NSEI",
-   "ret_30d": null,
-   "alpha_30d": null,
+   "ret_30d": 7.22,
+   "alpha_30d": 9.18,
    "ret_90d": null,
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 8.46,
-   "alpha_to_date": 9.32
+   "ret_to_date": 4.36,
+   "alpha_to_date": 7.56
   },
   {
    "ticker": "SAGILITY.NS",
@@ -570,8 +570,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 0.67,
-   "alpha_to_date": 0.31
+   "ret_to_date": -1.82,
+   "alpha_to_date": 0.19
   },
   {
    "ticker": "DEEPAKFERT.NS",
@@ -583,8 +583,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -1.27,
-   "alpha_to_date": -1.63
+   "ret_to_date": -16.52,
+   "alpha_to_date": -14.51
   },
   {
    "ticker": "EMMVEE.NS",
@@ -596,8 +596,8 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": -9.38,
-   "alpha_to_date": -12.61
+   "ret_to_date": -22.87,
+   "alpha_to_date": -23.66
   },
   {
    "ticker": "AIIL.NS",
@@ -609,8 +609,34 @@
    "alpha_90d": null,
    "ret_180d": null,
    "alpha_180d": null,
-   "ret_to_date": 3.96,
-   "alpha_to_date": -0.15
+   "ret_to_date": -9.7,
+   "alpha_to_date": -11.36
+  },
+  {
+   "ticker": "ACN",
+   "alert_date": "2026-10-22",
+   "benchmark": "^GSPC",
+   "ret_30d": null,
+   "alpha_30d": null,
+   "ret_90d": null,
+   "alpha_90d": null,
+   "ret_180d": null,
+   "alpha_180d": null,
+   "ret_to_date": -4.55,
+   "alpha_to_date": -4.46
+  },
+  {
+   "ticker": "MPHASIS.NS",
+   "alert_date": "2026-10-23",
+   "benchmark": "^NSEI",
+   "ret_30d": null,
+   "alpha_30d": null,
+   "ret_90d": null,
+   "alpha_90d": null,
+   "ret_180d": null,
+   "alpha_180d": null,
+   "ret_to_date": 0.0,
+   "alpha_to_date": 0.0
   }
  ]
 }
